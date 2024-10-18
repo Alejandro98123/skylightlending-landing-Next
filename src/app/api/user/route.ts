@@ -1,50 +1,81 @@
 import { PrismaClient } from "@prisma/client";
 import { NextResponse } from "next/server";
+import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
 const prisma = new PrismaClient();
+import {
+  handleLogin,
+  handleRegister,
+  handleForgotPassword,
+} from "@/app/api/functions/loginService";
 
 export async function GET() {
   try {
     const usuarios = await prisma.user.findMany();
-    return new NextResponse(JSON.stringify(usuarios),{ status : 201 });
+    return new NextResponse(JSON.stringify(usuarios), { status: 201 });
   } catch (e) {
-    return new NextResponse(JSON.stringify({ error: "Internal server error" }), { status: 500 });
+    return new NextResponse(
+      JSON.stringify({ error: "Internal server error" }),
+      { status: 500 }
+    );
   } finally {
     await prisma.$disconnect();
   }
 }
 
 export async function POST(request: Request) {
-  const { name, last_name, email, password } = await request.json();
+  const { name, last_name, email, password, action } = await request.json();
+  switch (action) {
+    case "login":
+      return await handleLogin(email, password);
+    case "register":
+      return await handleRegister(name, last_name, email, password);
+    case "forgotPassword":
+      return await handleForgotPassword(email);
+    default:
+      return new NextResponse(
+        JSON.stringify({ message: "Invalid view parameter", success: false }),
+        { status: 400 }
+      );
+  }
+}
 
+export async function PUT(req: Request) {
   try {
-    const nuevoUsuario = await prisma.user.create({
-      data: {
-        name,
-        last_name,
-        email,
-        password
-      }
+    const JWT_SECRET = process.env.JWT_SECRET || "SECRET";
+    const { password, emailToken } = await req.json();
+
+    const decoded = jwt.verify(emailToken, JWT_SECRET) as { email: string };
+
+    const user = await prisma.user.findUnique({
+      where: { email: decoded.email },
     });
-    return new NextResponse(JSON.stringify(nuevoUsuario), { status: 201 });
-  } catch (e) {
-    return new NextResponse(JSON.stringify({ error: "Internal server error" }), { status: 500 });
+
+    if (!user) {
+      return new Response(
+        JSON.stringify({ success: false, message: "User not found" }),
+        { status: 404 }
+      );
+    }
+    const hashedPassword = await bcrypt.hash(password, 10);
+    await prisma.user.update({
+      where: { email: user.email },
+      data: { password: hashedPassword },
+    });
+    return new Response(
+      JSON.stringify({
+        success: true,
+        message: "Password updated successfully",
+      }),
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error(error);
+    return new Response(
+      JSON.stringify({ success: false, message: "An error occurred" }),
+      { status: 500 }
+    );
   } finally {
     await prisma.$disconnect();
   }
 }
-
-
-/* este esta bien
-import type { NextApiRequest, NextApiResponse } from "next";
-import { NextResponse } from "next/server";
-
-export async function GET() {
-  try {
-    const users = [
-      { id: 1, name: "carlitos", email: "hola@hola.com" },
-      { id: 2, name: "juancito", email: "chau@hola.com" },
-    ];
-    return NextResponse.json(users, { status: 200 });
-  } catch (e) {}
-}
-*/
