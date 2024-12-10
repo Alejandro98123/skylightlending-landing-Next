@@ -1,15 +1,10 @@
 "use client";
 import React, { useEffect, useState } from "react";
-import {
-  Button,
-  Card,
-  CardHeader,
-  CardBody,
-  Image,
-} from "@nextui-org/react";
+import { Button, Card, CardHeader, CardBody, Image } from "@nextui-org/react";
 import { useRouter } from "next/navigation";
 import { fetchUserData } from "@/app/home/serviceHomeUser";
-import Cookies from 'js-cookie';
+import Cookies from "js-cookie";
+import ThemeMode from "./ThemeMode";
 
 const UserCard = () => {
   const [loading, setLoading] = useState(false);
@@ -34,15 +29,18 @@ const UserCard = () => {
   }, [router]);
 
   const handleLogout = async () => {
-    Cookies.remove('myToken');
-    const cookieEliminada = Cookies.get('myToken');
+    Cookies.remove("myToken");
+    const cookieEliminada = Cookies.get("myToken");
     if (!cookieEliminada) {
-      router.push('/login')
+      router.push("/login");
     }
   };
 
   return (
     <Card className="py-4">
+      <div className="flex justify-end">
+        <ThemeMode/>
+      </div>
       <CardHeader className="pb-0 pt-2 px-4 flex-col items-center">
         <p className="text-tiny uppercase font-bold">Welcome</p>
         <h4 className="font-bold text-large">{user?.email}</h4>
@@ -55,6 +53,14 @@ const UserCard = () => {
           src="https://nextui.org/images/hero-card-complete.jpeg"
           width={270}
         />
+        <Button
+          className="mt-2 text-white"
+          color="success"
+          onClick={()=> router.push("/profile")}
+          disabled={loading}
+        >
+          My Profile
+        </Button>
         <Button
           className="mt-2"
           color="danger"
