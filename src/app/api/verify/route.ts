@@ -35,10 +35,7 @@ export async function GET(request: NextRequest) {
       });
       return NextResponse.redirect(new URL("/login", request.url));
     } catch (error) {
-      return new NextResponse(
-        JSON.stringify({ message: "Invalid token", success: false }),
-        { status: 401 }
-      );
+      return NextResponse.redirect(new URL("/login", request.url));
     }
   }
   
